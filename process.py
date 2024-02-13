@@ -35,7 +35,7 @@ def gen_arrivals(env, start_buffer):
     """
     while True:
         yield env.timeout(random.normalvariate(DELIVERY_TIME, DELIVERY_TIME_SIGMA))
-        print(f'{env.now:.2f} part has arrived')
+        #print(f'{env.now:.2f} part has arrived')
         yield start_buffer.put(random.normalvariate(DELIVERY_SIZE, DELIVERY_SIZE_SIGMA))
 
 
@@ -57,13 +57,13 @@ machine = Machine(
     yield_rate = float(specs.loc[name, "Yield"][:2])/100,
     yield_sigma = float(specs.loc[name, "Yield"][:2])/100/100,
     batch_failure_rate = 0.05,
-    mtbf = 1000,
-    mttr = 20,
-    repair_std_dev= 5,
+    mtbf = 100,
+    mttr = 1,
+    repair_std_dev= 0.1,
     batch_size = specs.loc[name, "Lbs-Per-Cycle"],
 )
 
 env.process(gen_arrivals(env, start_buffer))
-env.run(until=50)
+env.run(until=100)
 print(specs.loc[name, 'Cycle-Time'])
 print(f'{machine.name} finished {machine.number_finished} lbs')

@@ -101,32 +101,50 @@ class Machine(object):
         self.finish_times = []
         self.fail_times = []
         self.full = False
+        self.broken = False
         # start running the process
         self.process = env.process(self.produce())
+        env.process(self.break_machine())
 
     def produce(self):
         """
         Runs the process for the machine
         """
         while True:
-            # wait to start until you have a full batch
-            while not self.full or self.in_buffer.level < self.batch_size:
-                # if a part is available get it from the buffer
-                amount = yield self.in_buffer.get(amount = self.batch_size)
-                print(f'{self.env.now:.2f} {self.name} has got a part')
-                self.full = True
-            # add to your start times list
-            self.start_times.append(self.env.now)
-            
-            yield self.env.timeout(random.normalvariate(self.cycle_time, self.cycle_time_sigma))
-            print(f'{self.env.now:.2f} {self.name} finished a part. Next buffer has {self.out_buffer.level} and capacity of {self.out_buffer.capacity}')
-            if random.uniform(0, 1) > self.batch_failure_rate:
-                yielded_amount = random.normalvariate(self.batch_size * self.yield_rate, self.yield_sigma)
-                yield self.out_buffer.put(yielded_amount)
-                print(f'{self.env.now:.2f} {self.name} pushed a part to next buffer')
-                self.number_finished += yielded_amount
-                self.finish_times.append(self.env.now)
-            else:
-                print(f'{self.env.now:.2f} {self.name} failed')
-                self.fail_times.append(self.env.now)
-            self.full = False
+            try:
+                # wait to start until you have a full batch
+                while not self.full or self.in_buffer.level < self.batch_size:
+                    # if a part is available get it from the buffer
+                    amount = yield self.in_buffer.get(amount = self.batch_size)
+                    #print(f'{self.env.now:.2f} {self.name} has got a part')
+                    self.full = True
+                # add to your start times list
+                self.start_times.append(self.env.now)
+                
+                yield self.env.timeout(random.normalvariate(self.cycle_time, self.cycle_time_sigma))
+                print(f'{self.env.now:.2f} {self.name} finished a part. Next buffer has {self.out_buffer.level} lbs, Prev buffer has {self.in_buffer.level} lbs.')
+                if random.uniform(0, 1) > self.batch_failure_rate:
+
+                    yielded_amount = random.normalvariate(self.batch_size * self.yield_rate, self.yield_sigma)
+                    yield self.out_buffer.put(yielded_amount)
+                    print(f'{self.env.now:.2f} {self.name} pushed {yielded_amount} lbs to next buffer')
+                    self.number_finished += yielded_amount
+                    self.finish_times.append(self.env.now)
+                else:
+                    print(f'{self.env.now:.2f} {self.name} failed')
+                    self.fail_times.append(self.env.now)
+                self.full = False
+            except simpy.Interrupt:
+                self.broken = True
+                print(f'{self.env.now:.2f} {self.name} IS BROKEN!!!')
+                t = random.lognormvariate(self.mttr, self.repair_std_dev)
+                print(t)
+                yield(self.env.timeout(t))
+                self.broken = False
+                print(f'{self.env.now:.2f} {self.name} IS REPAIRED!!!')
+    
+    def break_machine(self):
+        while True:
+            yield self.env.timeout(random.expovariate(1/self.mtbf))
+            if not self.broken:
+                self.process.interrupt()
