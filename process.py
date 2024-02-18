@@ -47,11 +47,11 @@ buffer_list = [start_buffer,]
 machine_dict = {}
 for i in range(len(machine_names)):
     name = machine_names[i]
-    print(name)
+    # print(name)
     number_required = specs.loc[name, "Number-Required"]
     buffer_list.append(Buffer(env, "Buffer " + str(i + 1)))
-    print(buffer_list[i].name)
-    print(buffer_list[i + 1].name)
+    # print(buffer_list[i].name)
+    # print(buffer_list[i + 1].name)
     machine_list = []
     for j in range(number_required):
         machine = Machine(

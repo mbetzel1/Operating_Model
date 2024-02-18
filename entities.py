@@ -149,8 +149,8 @@ class Machine(object):
                 #print(f'{self.env.now:.2f} {self.name} IS BROKEN!!!')
                 t = np.log(random.lognormvariate(self.mttr, self.repair_std_dev))
                 self.break_time = random.expovariate(1/self.mtbf)
-                print(f'{self.break_time} is the MTBF for {self.name}')
-                print(f'{t} is the MMT for {self.name}')
+                #print(f'{self.break_time} is the MTBF for {self.name}')
+                #print(f'{t} is the MMT for {self.name}')
                 yield(self.env.timeout(t))
                 
                 
