@@ -10,7 +10,14 @@ from entities import Machine, Buffer
 # Load the specs using pandas
 SPEC_PATH = "./Machine_Specs.csv"
 specs = pd.read_csv(SPEC_PATH, index_col="Item",)
-machine_names = specs.index
+
+NUMBER_PROCESSES = 3
+machine_names = []
+for i in range(NUMBER_PROCESSES):
+# indirect way for setting how many processes there will be
+    machine_names.append(str(i) + " machine")
+# how many machines are in each process, length must match machine_names
+NUMBER_OF_MACHINES_PER_PROCESS = [1,1,1]
 
 # Define constants
 HOURS_PER_DAY = 24
@@ -24,8 +31,7 @@ DELIVERY_TIME = 1
 DELIVERY_TIME_SIGMA = 0
 
 # Number of hours annually in a one or two shift shop
-TWO_SHIFT_ANNUAL_HOURS = specs.loc['Jet-Mill', 'Two-Shift-Annual-Hours']
-ONE_SHIFT_ANNUAL_HOURS = specs.loc['Jet-Mill', 'One-Shift-Annual-Hours']
+TWO_SHIFT_ANNUAL_HOURS = 100
 
 SIMULATION_HOURS = TWO_SHIFT_ANNUAL_HOURS
 
@@ -48,7 +54,7 @@ machine_dict = {}
 for i in range(len(machine_names)):
     name = machine_names[i]
     print(name)
-    number_required = specs.loc[name, "Number-Required"]
+    number_required = NUMBER_OF_MACHINES_PER_PROCESS[i]
     buffer_list.append(Buffer(env, "Buffer " + str(i + 1)))
     print(buffer_list[i].name)
     print(buffer_list[i + 1].name)
@@ -60,15 +66,15 @@ for i in range(len(machine_names)):
         item_type = name,
         in_buffer = buffer_list[i],
         out_buffer = buffer_list[i + 1],
-        cycle_time = specs.loc[name, 'Cycle-Time'],
-        cycle_time_sigma = specs.loc[name, 'Cycle-Time']/10,
-        yield_rate = float(specs.loc[name, "Yield"][:2])/100,
-        yield_sigma = float(specs.loc[name, "Yield"][:2])/100/100,
-        batch_failure_rate = 0.05,
-        mtbf = specs.loc[name, "MBTF-Days"] * WORK_HOURS_PER_DAY,
-        mttr = specs.loc[name, "MMT-Days"] * WORK_HOURS_PER_DAY,
-        repair_std_dev= 0.1,
-        batch_size = specs.loc[name, "Lbs-Per-Cycle"],
+        cycle_time = 10,
+        cycle_time_sigma = 0,
+        yield_rate = 1,
+        yield_sigma = 0,
+        batch_failure_rate = 0.0,
+        mtbf = 10,
+        mttr = 1,
+        repair_std_dev= 0.0,
+        batch_size = 1,
         )
         
         machine_list.append(machine)
