@@ -79,6 +79,6 @@ env.run(until=SIMULATION_HOURS)
 for name in machine_names:
     machine_list = machine_dict[name]
     for machine in machine_list:
-        print(f'{machine.name} finished {machine.number_finished} lbs')
+        print(f'{machine.name} finished {machine.number_finished/2000} tons')
 for buffer in buffer_list:
-    print(buffer.name + " has a level of " + str(buffer.level))
+    print(buffer.name + " has a level of " + str(buffer.level/2000))

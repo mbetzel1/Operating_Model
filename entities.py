@@ -99,14 +99,10 @@ class Machine(object):
         self.batch_size = batch_size
         self.items_ready = 0
         self.number_finished = 0
-        self.start_times = []
-        self.finish_times = []
-        self.fail_times = []
-        self.broken = False
         # start running the process
-        self.process = env.process(self.produce())
-        self.op_hours_since_last_break = 0
         self.break_time = random.expovariate(1/self.mtbf)
+        self.repair_time = np.log(random.lognormvariate(self.mttr, self.repair_std_dev))
+        self.process = env.process(self.produce())
         env.process(self.break_machine())
 
     def produce(self):
@@ -115,51 +111,35 @@ class Machine(object):
         """
         while True:
             try:
-                # wait to start until you have a full batch
-                if self.in_buffer.level < self.batch_size:
-                    yield self.env.timeout(1)
-                else:
-                        # if a part is available get it from the buffer
-                    yield self.in_buffer.get(amount = self.batch_size)
-                    #print(f'{self.env.now:.2f} {self.name} has got a part')
-                    # add to your start times list
-                    self.start_times.append(self.env.now)
-                    cycle = random.normalvariate(self.cycle_time, self.cycle_time_sigma)
-                    if cycle < 0:
-                        cycle = 0
-                    # track operating hours since breaking
-                    self.op_hours_since_last_break += cycle
-                    yield self.env.timeout(cycle)
-                    #print(f'{self.env.now:.2f} {self.name} finished a part. Next buffer has {self.out_buffer.level} lbs, Prev buffer has {self.in_buffer.level} lbs.')
-                    if random.uniform(0, 1) > self.batch_failure_rate:
-
-                        yielded_amount = random.normalvariate(self.batch_size * self.yield_rate, self.yield_sigma)
-                        yield self.out_buffer.put(yielded_amount)
-                        #print(f'{self.env.now:.2f} {self.name} pushed {yielded_amount} lbs to {self.out_buffer.name}')
-                        self.number_finished += yielded_amount
-                        self.finish_times.append(self.env.now)
-                    # batch failures
-                    else:
-                        #print(f'{self.env.now:.2f} {self.name} batch failed')
-                        self.fail_times.append(self.env.now)
-
+                # when a load is available get it from the buffer
+                yield self.in_buffer.get(amount = self.batch_size)
+                # add to your start times list
+                cycle = random.normalvariate(self.cycle_time, self.cycle_time_sigma)
+                # ensure time is always non-negative
+                if cycle < 0:
+                    cycle = 0
+                # timeout for process
+                yield self.env.timeout(cycle)
+                # successful batch
+                if random.uniform(0, 1) > self.batch_failure_rate:
+                    yielded_amount = random.normalvariate(self.batch_size * self.yield_rate, self.yield_sigma)
+                    yield self.out_buffer.put(yielded_amount)
+                    self.number_finished += yielded_amount
+            # machine is broken
             except simpy.Interrupt:
-                self.broken = True
-                
-                #print(f'{self.env.now:.2f} {self.name} IS BROKEN!!!')
-                t = np.log(random.lognormvariate(self.mttr, self.repair_std_dev))
+                self.repair_time = np.log(random.lognormvariate(self.mttr, self.repair_std_dev))
                 self.break_time = random.expovariate(1/self.mtbf)
-                #print(f'{self.break_time} is the MTBF for {self.name}')
-                #print(f'{t} is the MMT for {self.name}')
-                yield(self.env.timeout(t))
+                yield(self.env.timeout(self.repair_time))
+
                 
                 
     
     def break_machine(self):
         # Process to break the machine
         while True:
-            if self.op_hours_since_last_break < self.break_time:
-                yield self.env.timeout(1)
-            else:
-                self.op_hours_since_last_break = 0
-                self.process.interrupt()
+            # wait until the time to break
+            yield self.env.timeout(self.break_time)
+            # break
+            self.process.interrupt()
+            # wait until your repaired to restart the clock on breaking
+            yield self.env.timeout(self.repair_time)

@@ -11,13 +11,13 @@ from entities import Machine, Buffer
 SPEC_PATH = "./Machine_Specs.csv"
 specs = pd.read_csv(SPEC_PATH, index_col="Item",)
 
-NUMBER_PROCESSES = 3
+NUMBER_PROCESSES = 1
 machine_names = []
 for i in range(NUMBER_PROCESSES):
 # indirect way for setting how many processes there will be
     machine_names.append(str(i) + " machine")
 # how many machines are in each process, length must match machine_names
-NUMBER_OF_MACHINES_PER_PROCESS = [1,1,1]
+NUMBER_OF_MACHINES_PER_PROCESS = [1]
 
 # Define constants
 HOURS_PER_DAY = 24
@@ -66,13 +66,13 @@ for i in range(len(machine_names)):
         item_type = name,
         in_buffer = buffer_list[i],
         out_buffer = buffer_list[i + 1],
-        cycle_time = 10,
+        cycle_time = 1,
         cycle_time_sigma = 0,
         yield_rate = 1,
         yield_sigma = 0,
         batch_failure_rate = 0.0,
         mtbf = 10,
-        mttr = 1,
+        mttr = 10,
         repair_std_dev= 0.0,
         batch_size = 1,
         )
