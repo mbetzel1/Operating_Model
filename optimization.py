@@ -9,21 +9,48 @@ from entities import Machine, Buffer
 
 
 
-def optimize(repititions=5, runs=5, starting_number_list=[2,6,11,20,5,4,26,5,3,20]):
+def optimize(repititions=5, runs=5, numbers_of_each_machine=[2,6,11,20,5,4,26,5,3,20], target=1000):
+    SPEC_PATH = "./Machine_Specs.csv"
+    specs = pd.read_csv(SPEC_PATH, index_col="Item",)
+    machine_names = specs.index
+    reversed_names = machine_names[::-1]
+    finished_by_type = {}
+    yield_ratios = {}
+    yield_ratio = 1
+    # use the expected yield of each step to know how many pounds you need to get the target
+    for name in reversed_names:
+        yield_ratio *= float(specs.loc[name, "Yield"][:2])/100
+        yield_ratios[name] = yield_ratio
+    # go through reps changing the number of each machine
     for i in range(repititions):
-        buffer_lists = repeat_process(runs)
-        average_production = sum([list[len(list) - 1].level for list in buffer_lists])/(len(buffer_lists)*2000)
-        
-    return(average_production)
+        # set the dict back to zero
+        for name in machine_names:
+            finished_by_type[name] = 0.0
+        # run the process
+        list_of_dicts = repeat_process(runs, numbers_of_each_machine)
+        # see how much each machine finished
+        for j in range(runs):
+            machine_dict = list_of_dicts[j]
+            for name in machine_names:
+                finished_by_type[name] += yield_ratios[name] * sum([machine.number_finished for machine in machine_dict[name]]) /(2000 * runs)
+            
+        # for the first machine which didn't finish the target on average, add one more
+        for number, name in enumerate(machine_names):
+            print(f'Run {i}, {numbers_of_each_machine[number]} {name} machines total finished: {finished_by_type[name]}')
+            if finished_by_type[name] < target:
+                numbers_of_each_machine[number] += 1
+                print(f'added one {name} to have {numbers_of_each_machine[number]}')
+                break
+    return(numbers_of_each_machine)
     #pounds_produced = buffer_list[len(buffer_list)-1].level/2000, 
 
-def repeat_process(n=3):
-    total_produced = []
+def repeat_process(n=3, numbers_of_each_machine=[2,6,11,20,5,4,26,5,3,20]):
+    list_of_dicts = []
     for i in range(n):
-        total_produced.append(run_process())
-    return total_produced
+        list_of_dicts.append(run_process(numbers_of_each_machine))
+    return list_of_dicts
 
-def run_process(machine_number_list=[2,6,11,20,5,4,26,5,3,20]):
+def run_process(numbers_of_each_machine=[2,6,11,20,5,4,26,5,3,20]):
     # Load the specs using pandas
     SPEC_PATH = "./Machine_Specs.csv"
     specs = pd.read_csv(SPEC_PATH, index_col="Item",)
@@ -65,7 +92,7 @@ def run_process(machine_number_list=[2,6,11,20,5,4,26,5,3,20]):
     for i in range(len(machine_names)):
         name = machine_names[i]
         # print(name)
-        number_required = machine_number_list[i]
+        number_required = numbers_of_each_machine[i]
         buffer_list.append(Buffer(env, "Buffer " + str(i + 1)))
         # print(buffer_list[i].name)
         # print(buffer_list[i + 1].name)
@@ -93,11 +120,11 @@ def run_process(machine_number_list=[2,6,11,20,5,4,26,5,3,20]):
 
     env.process(gen_arrivals(env, start_buffer))
     env.run(until=SIMULATION_HOURS)
-    return buffer_list
+    return machine_dict
 # for name in machine_names:
 #     machine_list = machine_dict[name]
 #     for machine in machine_list:
 #         print(f'{machine.name} finished {machine.number_finished} lbs')
 # for buffer in buffer_list:
 #     print(buffer.name + " has a level of " + str(buffer.level))
-print(optimize(1,1))
+print(optimize(5,5, [4,7,12,21,6,5,29,10,6,20]))

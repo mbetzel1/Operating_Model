@@ -109,6 +109,7 @@ class Machine(object):
         """
         Runs the process for the machine
         """
+        # continuously run the process
         while True:
             try:
                 # when a load is available get it from the buffer
@@ -118,18 +119,23 @@ class Machine(object):
                 # ensure time is always non-negative
                 if cycle < 0:
                     cycle = 0
-                # timeout for process
+                # process the quantity you just got
                 yield self.env.timeout(cycle)
-                # successful batch
+                # make sure the batch is successful
                 if random.uniform(0, 1) > self.batch_failure_rate:
                     yielded_amount = random.normalvariate(self.batch_size * self.yield_rate, self.yield_sigma)
                     yield self.out_buffer.put(yielded_amount)
                     self.number_finished += yielded_amount
             # machine is broken
             except simpy.Interrupt:
-                self.repair_time = np.log(random.lognormvariate(self.mttr, self.repair_std_dev))
+        
+                # set a new break time
                 self.break_time = random.expovariate(1/self.mtbf)
+                # wait until you are repaired
                 yield(self.env.timeout(self.repair_time))
+                # get a new repair time
+                self.repair_time = np.log(random.lognormvariate(self.mttr, self.repair_std_dev))
+
 
                 
                 
