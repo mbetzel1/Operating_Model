@@ -33,7 +33,8 @@ def optimize(repititions=5, runs=5, numbers_of_each_machine=[2,6,11,20,5,4,26,5,
             machine_dict = list_of_dicts[j]
             for name in machine_names:
                 finished_by_type[name] += yield_ratios[name] * sum([machine.number_finished for machine in machine_dict[name]]) /(2000 * runs)
-            
+                for machine in machine_dict[name]:
+                    print(f'{machine.name} utilization rate: {(machine.utilization*100):.2f} %')
         # for the first machine which didn't finish the target on average, add one more
         for number, name in enumerate(machine_names):
             print(f'Run {i}, {numbers_of_each_machine[number]} {name} machines total finished: {finished_by_type[name]}')
@@ -127,4 +128,4 @@ def run_process(numbers_of_each_machine=[2,6,11,20,5,4,26,5,3,20]):
 #         print(f'{machine.name} finished {machine.number_finished} lbs')
 # for buffer in buffer_list:
 #     print(buffer.name + " has a level of " + str(buffer.level))
-print(optimize(5,5, [4,7,12,21,6,5,29,10,6,20]))
+print(optimize(5,5, [4,8,14,25,7,6,29,10,6,25]))

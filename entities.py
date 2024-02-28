@@ -97,8 +97,9 @@ class Machine(object):
         self.mttr = mttr
         self.repair_std_dev = repair_std_dev
         self.batch_size = batch_size
-        self.items_ready = 0
         self.number_finished = 0
+        self.util_numerator = 0
+        self.utilization = 0
         # start running the process
         self.break_time = random.expovariate(1/self.mtbf)
         self.repair_time = np.log(random.lognormvariate(self.mttr, self.repair_std_dev))
@@ -120,7 +121,10 @@ class Machine(object):
                 if cycle < 0:
                     cycle = 0
                 # process the quantity you just got
+                start_time = self.env.now
                 yield self.env.timeout(cycle)
+                self.util_numerator += self.env.now - start_time
+                self.utilization = self.util_numerator/self.env.now
                 # make sure the batch is successful
                 if random.uniform(0, 1) > self.batch_failure_rate:
                     yielded_amount = random.normalvariate(self.batch_size * self.yield_rate, self.yield_sigma)
